@@ -1,502 +1,577 @@
 """
-TRAVELWISE - Smart Travel Destination Advisor
-A polished rule-based expert system built with Python + Streamlit.
+TRAVELOO / TRAVELWISE - Travel Destination Advisor Dashboard
+Python + Streamlit
 
 Install:
     py -m pip install --upgrade streamlit pandas
 
 Run:
-    py -m streamlit run travelwise_app.py
+    py -m streamlit run travel_dashboard.py
 """
 
 import html
+from datetime import date
 import pandas as pd
 import streamlit as st
 
-# ----------------------------- PAGE CONFIG -----------------------------
 st.set_page_config(
-    page_title="TravelWise | Find Your Next Escape",
+    page_title="Traveloo | Travel Dashboard",
     page_icon="✈️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ----------------------------- DESIGN SYSTEM -----------------------------
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap');
+# ----------------------------- DESTINATION DATA -----------------------------
+DESTINATIONS = [
+    {
+        "name": "Nha Trang",
+        "country": "Vietnam",
+        "state": "Khanh Hoa",
+        "budget": 24000,
+        "days": 5,
+        "types": ["Beach", "Adventure", "Family"],
+        "seasons": ["Winter", "Summer"],
+        "best": "February to August",
+        "activities": ["Island hopping", "Snorkelling", "Beach cafés", "Po Nagar towers"],
+        "transport": "Fly to Cam Ranh Airport, then transfer",
+        "rating": 4.9,
+        "reviews": "1,022",
+        "emoji": "🏝️",
+        "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1000&q=85",
+        "description": "Clear turquoise water, island trips and a lively beachfront promenade.",
+    },
+    {
+        "name": "Paris",
+        "country": "France",
+        "state": "Île-de-France",
+        "budget": 85000,
+        "days": 5,
+        "types": ["Culture", "Romantic", "History"],
+        "seasons": ["Spring", "Summer", "Autumn"],
+        "best": "April to June and September to October",
+        "activities": ["Eiffel Tower", "Louvre Museum", "Seine cruise", "Montmartre"],
+        "transport": "Fly to Charles de Gaulle or Orly Airport",
+        "rating": 4.9,
+        "reviews": "2,410",
+        "emoji": "🗼",
+        "image": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1000&q=85",
+        "description": "Iconic architecture, museums, riverside walks and unforgettable cafés.",
+    },
+    {
+        "name": "Bangkok",
+        "country": "Thailand",
+        "state": "Central Thailand",
+        "budget": 32000,
+        "days": 4,
+        "types": ["Culture", "Food", "Shopping"],
+        "seasons": ["Winter"],
+        "best": "November to February",
+        "activities": ["Grand Palace", "Wat Arun", "Floating markets", "Street food"],
+        "transport": "Fly to Suvarnabhumi or Don Mueang Airport",
+        "rating": 4.8,
+        "reviews": "1,876",
+        "emoji": "🏙️",
+        "image": "https://images.unsplash.com/photo-1506189702168-3f5b6a5b4c8d?w=1000&q=85",
+        "description": "A vibrant city full of temples, night markets and famous street food.",
+    },
+    {
+        "name": "Rishikesh",
+        "country": "India",
+        "state": "Uttarakhand",
+        "budget": 7000,
+        "days": 3,
+        "types": ["Adventure", "Nature", "Spiritual"],
+        "seasons": ["Winter", "Summer"],
+        "best": "September to November and February to May",
+        "activities": ["River rafting", "Ganga Aarti", "Yoga", "Waterfall hikes"],
+        "transport": "Road or train via Haridwar",
+        "rating": 4.8,
+        "reviews": "3,240",
+        "emoji": "🏞️",
+        "image": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=1000&q=85",
+        "description": "A peaceful riverside town with Himalayan views and outdoor adventure.",
+    },
+    {
+        "name": "Manali",
+        "country": "India",
+        "state": "Himachal Pradesh",
+        "budget": 14000,
+        "days": 5,
+        "types": ["Adventure", "Nature", "Romantic"],
+        "seasons": ["Winter", "Summer"],
+        "best": "March to June; December to February for snow",
+        "activities": ["Solang Valley", "Old Manali", "Hadimba Temple", "Mountain drives"],
+        "transport": "Road or overnight bus",
+        "rating": 4.8,
+        "reviews": "2,180",
+        "emoji": "🏔️",
+        "image": "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=1000&q=85",
+        "description": "A mountain escape with pine forests, cafés and snow-season activities.",
+    },
+    {
+        "name": "Jaipur",
+        "country": "India",
+        "state": "Rajasthan",
+        "budget": 9000,
+        "days": 3,
+        "types": ["Culture", "History", "Family"],
+        "seasons": ["Winter"],
+        "best": "October to March",
+        "activities": ["Amber Fort", "City Palace", "Hawa Mahal", "Local bazaars"],
+        "transport": "Road, train or flight",
+        "rating": 4.7,
+        "reviews": "1,650",
+        "emoji": "🏰",
+        "image": "https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=1000&q=85",
+        "description": "The Pink City blends royal palaces, historic forts and colourful markets.",
+    },
+    {
+        "name": "Goa",
+        "country": "India",
+        "state": "Goa",
+        "budget": 18000,
+        "days": 5,
+        "types": ["Beach", "Adventure", "Nightlife"],
+        "seasons": ["Winter"],
+        "best": "November to February",
+        "activities": ["Beach hopping", "Water sports", "Fort Aguada", "Café trail"],
+        "transport": "Flight, train or road",
+        "rating": 4.8,
+        "reviews": "4,100",
+        "emoji": "🏖️",
+        "image": "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=1000&q=85",
+        "description": "Sunny beaches, coastal food, water sports and relaxed evenings.",
+    },
+    {
+        "name": "Srinagar",
+        "country": "India",
+        "state": "Jammu and Kashmir",
+        "budget": 22000,
+        "days": 5,
+        "types": ["Nature", "Romantic", "Family"],
+        "seasons": ["Summer", "Winter"],
+        "best": "April to October; winter for snow",
+        "activities": ["Dal Lake shikara", "Mughal Gardens", "Houseboat stay", "Gulmarg"],
+        "transport": "Flight or road",
+        "rating": 4.9,
+        "reviews": "2,760",
+        "emoji": "🌊",
+        "image": "https://images.unsplash.com/photo-1566837497312-7be4a6a3c4f8?w=1000&q=85",
+        "description": "Beautiful lakes, gardens and mountain scenery in the Kashmir Valley.",
+    },
+]
 
-    :root {
-        --navy: #10283f;
-        --teal: #087f78;
-        --teal-dark: #06645f;
-        --ink: #142b3e;
-        --muted: #64788a;
-        --line: #e1e9ef;
-        --paper: #ffffff;
-        --bg: #f3f7fa;
-        --sand: #f3eadb;
-        --orange: #d98b35;
-    }
-    html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-    .stApp { background: var(--bg); color: var(--ink); }
-    .block-container { max-width: 1240px; padding-top: 1.4rem; padding-bottom: 3rem; }
-    [data-testid="stSidebar"] { background: #fff; border-right: 1px solid var(--line); }
-    [data-testid="stSidebar"] .block-container { padding-top: 1.5rem; }
-    #MainMenu, footer { visibility: hidden; }
-    header[data-testid="stHeader"] { background: transparent; }
-    h1, h2, h3 { color: var(--navy); font-family: 'Manrope', sans-serif; }
-    .brand { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 25px; color: var(--navy); }
-    .brand span { color: var(--teal); }
-    .hero {
-        position: relative; overflow: hidden; border-radius: 26px;
-        padding: 42px 44px; margin-bottom: 24px; color: white;
-        background: linear-gradient(112deg, #10283f 0%, #14566a 58%, #15958a 100%);
-    }
-    .hero:after {
-        content: "✈"; position: absolute; right: 5%; top: -30px;
-        font-size: 190px; opacity: .09; transform: rotate(-15deg);
-    }
-    .hero-kicker { text-transform: uppercase; letter-spacing: 2.8px; font-size: 11px; font-weight: 800; opacity: .78; }
-    .hero h1 { color: white; font-size: clamp(34px, 5vw, 55px); line-height: 1.04; margin: 12px 0 12px; max-width: 650px; }
-    .hero p { color: #e4f2f3; font-size: 16px; max-width: 620px; margin: 0; line-height: 1.6; }
-    .hero-pill { display: inline-block; margin-top: 22px; padding: 8px 13px; border: 1px solid rgba(255,255,255,.3); border-radius: 30px; color: #fff; font-size: 12px; }
-    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin: 18px 0 25px; }
-    .metric { background: white; border: 1px solid var(--line); border-radius: 16px; padding: 17px 19px; box-shadow: 0 3px 12px rgba(18,43,62,.035); }
-    .metric .value { color: var(--navy); font: 800 26px 'Manrope', sans-serif; }
-    .metric .label { color: var(--muted); font-size: 12px; margin-top: 3px; }
-    .section-eyebrow { color: var(--teal); text-transform: uppercase; letter-spacing: 1.8px; font-size: 10px; font-weight: 800; }
-    .destination-card { display: grid; grid-template-columns: minmax(0, 1fr) 155px; background: white; border: 1px solid var(--line); border-radius: 19px; overflow: hidden; margin: 13px 0 8px; box-shadow: 0 5px 18px rgba(18,43,62,.045); }
-    .destination-card.best { border: 1.5px solid var(--orange); box-shadow: 0 0 0 2px rgba(217,139,53,.10); }
-    .destination-main { padding: 22px 24px; }
-    .rank { color: var(--teal); font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
-    .destination-title { font: 800 25px 'Manrope', sans-serif; color: var(--navy); margin: 5px 0 1px; }
-    .destination-state { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
-    .destination-desc { color: #42596b; font-size: 14px; margin: 0 0 12px; }
-    .tag { display: inline-block; border-radius: 30px; padding: 5px 10px; margin: 0 5px 6px 0; background: #f1f6f8; border: 1px solid #e1e9ed; color: #355366; font-size: 11px; font-weight: 700; }
-    .tag.match { background: #e6f5f2; border-color: #c6e8e1; color: #08766e; }
-    .tag.warning { background: #fff5e8; border-color: #f2d7b4; color: #a75b0c; }
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 20px; margin-top: 10px; }
-    .detail-label { display: block; color: #8494a2; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 3px; }
-    .detail-value { color: #294256; font-size: 13px; line-height: 1.45; }
-    .match-panel { background: var(--navy); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px 10px; border-left: 2px dashed #78909e; text-align: center; }
-    .match-score { font: 800 44px 'Manrope', sans-serif; line-height: 1.1; color: #fff; }
-    .match-caption { color: #c6d5df; font-size: 11px; }
-    .estimate { color: #fff; font: 800 18px 'Manrope', sans-serif; margin-top: 17px; }
-    .card-note { color: #c6d5df; font-size: 10px; }
-    .info-panel { background: white; border: 1px solid var(--line); border-radius: 16px; padding: 19px; height: 100%; }
-    .info-panel h3 { font-size: 16px; margin: 0 0 8px; }
-    .info-panel p { color: var(--muted); font-size: 13px; margin: 0; line-height: 1.5; }
-    div.stButton > button, div.stDownloadButton > button { border-radius: 10px; font-weight: 700; border: 0; }
-    div.stButton > button[kind="primary"] { background: var(--teal); }
-    div.stButton > button[kind="primary"]:hover { background: var(--teal-dark); }
-    div[data-testid="stTabs"] button { font-weight: 700; }
-    .footer-note { color: #8494a2; font-size: 11px; text-align: center; margin-top: 30px; }
-    @media(max-width: 760px) {
-        .metric-grid { grid-template-columns: repeat(2, 1fr); }
-        .destination-card { grid-template-columns: 1fr; }
-        .match-panel { border-left: 0; border-top: 2px dashed #78909e; }
-        .detail-grid { grid-template-columns: 1fr; }
-        .hero { padding: 30px 25px; }
-    }
+TRIP_HISTORY = [
+    {"place": "Da Lat", "country": "Vietnam", "dates": "04 Jan – 10 Jan", "status": "Completed", "rating": "4.9", "emoji": "🌿"},
+    {"place": "Berlin", "country": "Germany", "dates": "04 Jan – 10 Jan", "status": "Completed", "rating": "5.0", "emoji": "🏛️"},
+    {"place": "New York", "country": "USA", "dates": "04 Jan – 10 Jan", "status": "Completed", "rating": "4.8", "emoji": "🌆"},
+    {"place": "Da Lat", "country": "Vietnam", "dates": "04 Jan – 10 Jan", "status": "Completed", "rating": "4.9", "emoji": "🌿"},
+]
+
+# ----------------------------- THEME -----------------------------
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
+if "saved" not in st.session_state:
+    st.session_state.saved = []
+if "nav" not in st.session_state:
+    st.session_state.nav = "Home"
+
+DARK = st.session_state.dark_mode
+if DARK:
+    bg, surface, ink, muted, line = "#111a22", "#1b2934", "#eef5f7", "#a8bac4", "#30424e"
+    hero_bg = "linear-gradient(115deg,#102b3d,#145d65,#138b80)"
+else:
+    bg, surface, ink, muted, line = "#f3f5f7", "#ffffff", "#17212b", "#6b7782", "#e6eaee"
+    hero_bg = "linear-gradient(115deg,#dff8f5,#e8f6f7,#e8efff)"
+
+st.markdown(
+    f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap');
+    :root{{--bg:{bg};--surface:{surface};--ink:{ink};--muted:{muted};--line:{line};--teal:#08b9b2;}}
+    html,body,[class*="css"]{{font-family:'DM Sans',sans-serif;}}
+    .stApp{{background:var(--bg);color:var(--ink);}}
+    .block-container{{max-width:1500px;padding-top:1.15rem;padding-bottom:2.5rem;}}
+    [data-testid="stSidebar"]{{background:var(--surface);border-right:1px solid var(--line);}}
+    [data-testid="stSidebar"] *{{color:var(--ink);}}
+    h1,h2,h3,h4{{color:var(--ink);font-family:'Manrope',sans-serif;}}
+    .brand{{font:800 23px 'Manrope',sans-serif;color:#08aaa5;padding:8px 4px 20px;}}
+    .hero{{background:{hero_bg};border:1px solid var(--line);border-radius:23px;padding:25px 30px;margin-bottom:18px;}}
+    .hero-kicker{{font-size:10px;letter-spacing:2px;font-weight:800;color:#08a9a2;text-transform:uppercase;}}
+    .hero h1{{font-size:32px;line-height:1.1;margin:7px 0;color:{'#ffffff' if DARK else '#142a38'};}}
+    .hero p{{font-size:13px;margin:0;color:{'#d7eeee' if DARK else '#6b7782'};}}
+    .topline{{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:5px 0 20px;}}
+    .section-title{{font:800 18px 'Manrope',sans-serif;color:var(--ink);margin:4px 0 12px;}}
+    .muted{{color:var(--muted);font-size:12px;}}
+    .panel{{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:17px;}}
+    .trip-feature{{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:12px;}}
+    .trip-feature img{{width:100%;height:190px;object-fit:cover;border-radius:12px;}}
+    .trip-card{{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:9px;height:100%;}}
+    .trip-card img{{width:100%;height:135px;object-fit:cover;border-radius:10px;}}
+    .trip-card-title{{font-weight:800;color:var(--ink);font-size:14px;margin:8px 0 2px;}}
+    .trip-card-meta{{color:var(--muted);font-size:11px;}}
+    .pill{{display:inline-block;background:#e4f8f6;color:#078c87;border-radius:20px;padding:4px 9px;font-size:10px;font-weight:800;margin:2px;}}
+    .history-row{{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);padding:10px;border-radius:12px;margin:8px 0;}}
+    .history-emoji{{font-size:23px;}}
+    .history-name{{font-size:12px;font-weight:800;color:var(--ink);}}
+    .history-date{{font-size:10px;color:var(--muted);}}
+    .history-rating{{margin-left:auto;color:#078c87;font-size:11px;font-weight:800;}}
+    .calendar{{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:17px;}}
+    .cal-head{{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;margin-bottom:13px;color:var(--ink);}}
+    .cal-grid{{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;}}
+    .cal-day{{font-size:9px;color:var(--muted);padding:5px 0;}}
+    .cal-date{{font-size:11px;padding:6px 0;border-radius:50%;color:var(--ink);}}
+    .cal-date.active{{background:#08b9b2;color:white;font-weight:800;}}
+    .cal-date.range{{background:#d9f5f2;color:#087d78;font-weight:700;}}
+    .kpi-row{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:15px 0;}}
+    .kpi{{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px;}}
+    .kpi b{{font:800 20px 'Manrope',sans-serif;color:var(--ink);display:block;}}
+    .kpi span{{font-size:10px;color:var(--muted);}}
+    div.stButton>button{{border-radius:9px;font-weight:700;border:1px solid var(--line);}}
+    div.stButton>button[kind="primary"]{{background:#08b9b2;color:white;border:0;}}
+    div.stButton>button[kind="primary"]:hover{{background:#079c96;color:white;}}
+    div[data-testid="stTabs"] button{{font-weight:700;}}
+    .footer{{text-align:center;color:var(--muted);font-size:10px;margin-top:25px;}}
+    @media(max-width:900px){{.hero h1{{font-size:26px;}}}}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# ----------------------------- DESTINATION KNOWLEDGE BASE -----------------------------
-# Budgets are approximate estimates per person for the suggested trip length.
-RAW_DESTINATIONS = [
-    ("Rishikesh", "Uttarakhand", 7000, 3, ["Adventure", "Nature", "Spiritual"], ["Winter", "Summer"], "Sep-Nov, Feb-May", ["River rafting", "Ganga Aarti", "Laxman Jhula cafes", "Yoga session"], "Road or train via Haridwar", "🏞️", "A riverside escape with rafting, quiet ghats and mountain views."),
-    ("Jaipur", "Rajasthan", 9000, 3, ["Culture", "History", "Family"], ["Winter"], "October-March", ["Amber Fort", "City Palace", "Hawa Mahal", "Bapu Bazaar"], "Road, train or flight", "🏰", "Pink-city forts, palaces, bazaars and rich food."),
-    ("Manali", "Himachal Pradesh", 14000, 5, ["Adventure", "Nature", "Romantic"], ["Winter", "Summer"], "Mar-Jun; Dec-Feb for snow", ["Solang Valley", "Old Manali", "Hadimba Temple", "Atal Tunnel"], "Road or overnight bus", "🏔️", "Himalayan scenery with treks, snow experiences and cafe-lined lanes."),
-    ("Udaipur", "Rajasthan", 12000, 3, ["Romantic", "Culture", "Family"], ["Winter"], "October-March", ["City Palace", "Lake Pichola boat ride", "Sajjangarh sunset", "Old city walk"], "Train, road or flight", "🛶", "A lake city of palaces, heritage hotels and beautiful sunsets."),
-    ("Goa", "Goa", 18000, 5, ["Beach", "Adventure", "Nightlife", "Family"], ["Winter", "Summer"], "November-February", ["North Goa beaches", "Water sports", "Old Goa churches", "Fort Aguada"], "Flight, train or road", "🏖️", "Beaches, food, nightlife and water sports."),
-    ("Mussoorie", "Uttarakhand", 10000, 3, ["Nature", "Family", "Romantic"], ["Summer", "Winter"], "Mar-Jun, Sep-Nov", ["Mall Road", "Gun Hill", "Kempty Falls", "Lal Tibba"], "Train to Dehradun, then taxi", "🌲", "An easy hill-station break with viewpoints and walking routes."),
-    ("Amritsar", "Punjab", 8000, 2, ["Culture", "History", "Family", "Spiritual"], ["Winter"], "October-March", ["Golden Temple", "Jallianwala Bagh", "Wagah-Attari ceremony", "Local food trail"], "Train, road or flight", "🕌", "Heritage, hospitality and memorable Punjabi food."),
-    ("Srinagar", "Jammu and Kashmir", 22000, 5, ["Nature", "Romantic", "Family"], ["Summer", "Winter"], "April-October; winter for snow", ["Dal Lake shikara", "Mughal Gardens", "Houseboat stay", "Gulmarg day trip"], "Flight or road", "🌊", "Lakes, gardens and beautiful Himalayan landscapes."),
-    ("Varanasi", "Uttar Pradesh", 9000, 3, ["Spiritual", "Culture", "History"], ["Winter"], "October-March", ["Ganga Aarti", "Sunrise boat ride", "Sarnath", "Old-city food walk"], "Train, road or flight", "🪔", "An ancient spiritual city on the banks of the Ganga."),
-    ("Darjeeling", "West Bengal", 19000, 5, ["Nature", "Family", "Romantic"], ["Summer", "Winter"], "Mar-May, Oct-Nov", ["Toy train", "Tiger Hill sunrise", "Tea garden visit", "Monasteries"], "Flight or train to Bagdogra/NJP, then road", "🚂", "Tea gardens, mountain views and a heritage railway."),
-    ("Pondicherry", "Puducherry", 15000, 4, ["Beach", "Culture", "Romantic"], ["Winter"], "November-February", ["Promenade walk", "French Quarter", "Auroville", "Cafe trail"], "Flight to Chennai, then road", "🚲", "French-style streets, cafes and calm beaches."),
-    ("Nainital", "Uttarakhand", 11000, 3, ["Nature", "Family", "Romantic"], ["Summer", "Winter"], "Mar-Jun, Sep-Nov", ["Naini Lake boating", "Snow View ropeway", "Mall Road", "Bhimtal"], "Train to Kathgodam, then road", "⛰️", "A lake town for short family and couples' getaways."),
-    ("Jaisalmer", "Rajasthan", 13000, 3, ["Culture", "History", "Adventure"], ["Winter"], "October-February", ["Jaisalmer Fort", "Sam dunes camel safari", "Patwon Ki Haveli", "Desert camp"], "Train, road or flight", "🐪", "A golden fort city with desert camps under the stars."),
-    ("Alleppey", "Kerala", 20000, 5, ["Nature", "Romantic", "Family"], ["Winter", "Monsoon"], "September-March", ["Houseboat cruise", "Marari beach", "Kumarakom birding", "Backwater village"], "Flight to Kochi, then road", "🛥️", "Slow backwater cruises, houseboats and coconut groves."),
-    ("Kasol", "Himachal Pradesh", 9500, 4, ["Adventure", "Nature"], ["Summer", "Winter"], "Mar-Jun, Sep-Nov", ["Kheerganga trek", "Manikaran hot springs", "Tosh village", "Riverside cafes"], "Bus to Bhuntar, then taxi", "⛺", "A riverside valley for trekkers and backpackers."),
-    ("Kochi", "Kerala", 16000, 4, ["Culture", "History", "Beach", "Nature"], ["Winter", "Monsoon"], "October-March", ["Fort Kochi walk", "Chinese fishing nets", "Kathakali show", "Mattancherry"], "Flight, train or road", "🎭", "Colonial lanes, art, seafood and harbour views."),
-]
-
-FIELDS = ["name", "state", "budget", "days", "types", "seasons", "best", "activities", "transport", "emoji", "description"]
-DESTINATIONS = [dict(zip(FIELDS, row)) for row in RAW_DESTINATIONS]
-INTERESTS = ["Nature", "Adventure", "Beach", "Culture", "History", "Spiritual", "Romantic", "Nightlife", "Family"]
-STAY_MULTIPLIER = {"Budget": 0.85, "Comfort": 1.0, "Premium": 1.35}
-COST_SPLIT = {"Stay": 0.35, "Food": 0.20, "Transport": 0.25, "Activities": 0.15, "Other": 0.05}
-
-
+# ----------------------------- HELPERS -----------------------------
 def money(value):
     return f"₹{round(value):,}"
 
-
-def estimate_trip(place, days, stay_style):
-    total = (place["budget"] / place["days"]) * days * STAY_MULTIPLIER[stay_style]
-    breakdown = {key: total * fraction for key, fraction in COST_SPLIT.items()}
-    return total, breakdown
-
-
-# ----------------------------- EXPERT SYSTEM / RULE ENGINE -----------------------------
-def evaluate_destination(place, budget, trip_days, interests, season, traveller):
+def score_destination(place, budget, days, interests, season, group):
     score = 0
     reasons = []
-    warnings = []
-
-    # Rule 1: budget compatibility
     if place["budget"] <= budget:
         score += 3
-        reasons.append("fits your budget")
-    elif place["budget"] <= budget * 1.20:
+        reasons.append("within budget")
+    elif place["budget"] <= budget * 1.2:
         score += 1
-        warnings.append("slightly above budget")
+        reasons.append("near budget")
     else:
-        score -= 3
-        warnings.append("above budget")
+        score -= 2
 
-    # Rule 2: trip duration
-    day_gap = abs(place["days"] - trip_days)
-    if day_gap == 0:
+    gap = abs(place["days"] - days)
+    if gap == 0:
         score += 2
-        reasons.append("matches your trip length")
-    elif day_gap <= 2:
+        reasons.append("trip duration match")
+    elif gap <= 2:
         score += 1
-        reasons.append("duration is close to your plan")
 
-    # Rule 3: interests
-    matched = [item for item in place["types"] if item in interests]
-    score += 3 * len(matched)
+    matched = set(place["types"]).intersection(interests)
+    score += len(matched) * 3
     if matched:
-        reasons.append("interests: " + ", ".join(matched))
+        reasons.append("interest match")
 
-    # Rule 4: season
     if season in place["seasons"]:
         score += 2
-        reasons.append(f"good option for {season.lower()}")
-    else:
-        warnings.append(f"season may not be ideal ({season.lower()})")
+        reasons.append("season match")
 
-    # Rule 5: traveller group
-    types = place["types"]
-    group_bonus = 0
-    if traveller == "Family" and "Family" in types:
-        group_bonus = 2
-    elif traveller == "Couple" and "Romantic" in types:
-        group_bonus = 2
-    elif traveller == "Friends" and any(x in types for x in ["Adventure", "Beach", "Nightlife"]):
-        group_bonus = 2
-    elif traveller == "Solo" and any(x in types for x in ["Adventure", "Culture", "Nature"]):
-        group_bonus = 1
-    if group_bonus:
-        score += group_bonus
-        reasons.append(f"suits {traveller.lower()} travel")
+    if group == "Family" and "Family" in place["types"]:
+        score += 2
+    elif group == "Couple" and "Romantic" in place["types"]:
+        score += 2
+    elif group == "Friends" and any(x in place["types"] for x in ["Adventure", "Beach", "Nightlife"]):
+        score += 2
+    elif group == "Solo" and any(x in place["types"] for x in ["Nature", "Culture", "Adventure"]):
+        score += 1
 
-    # Convert score to an easy-to-read relative match indicator.
-    max_score = 7 + (3 * max(1, len(interests))) + 2
-    match_percent = max(1, min(100, round((score / max_score) * 100)))
-    return {
-        "place": place,
-        "score": score,
-        "match": match_percent,
-        "reasons": reasons,
-        "warnings": warnings,
-    }
+    max_score = 7 + max(1, len(interests)) * 3 + 2
+    percent = max(1, min(99, round(score / max_score * 100)))
+    return score, percent, reasons
 
+def get_matches(budget, days, interests, season, group, count=6):
+    output = []
+    for place in DESTINATIONS:
+        score, percent, reasons = score_destination(place, budget, days, interests, season, group)
+        if score > 0:
+            output.append({"place": place, "score": score, "percent": percent, "reasons": reasons})
+    output.sort(key=lambda x: x["score"], reverse=True)
+    return output[:count]
 
-def get_recommendations(budget, trip_days, interests, season, traveller, count):
-    evaluated = [
-        evaluate_destination(p, budget, trip_days, interests, season, traveller)
-        for p in DESTINATIONS
-    ]
-    evaluated = [item for item in evaluated if item["score"] > 0]
-    evaluated.sort(key=lambda item: item["score"], reverse=True)
-    return evaluated[:count]
+def render_calendar():
+    days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
+    # Illustrative dashboard calendar for a 31-day month.
+    dates = list(range(1, 32))
+    cells = "".join(f'<div class="cal-day">{d}</div>' for d in days)
+    cells += '<div></div>' * 2
+    for d in dates:
+        cls = "cal-date active" if d in (23, 28) else ("cal-date range" if 24 <= d <= 27 else "cal-date")
+        cells += f'<div class="{cls}">{d}</div>'
+    return f'<div class="calendar"><div class="cal-head"><span>ACTIVITY</span><span>‹ &nbsp; NOV 2026 &nbsp; ›</span></div><div class="cal-grid">{cells}</div></div>'
 
+def safe_image(url, alt):
+    return f'<img src="{html.escape(url, quote=True)}" alt="{html.escape(alt, quote=True)}"/>'
 
-def render_destination_card(result, rank, days, stay_style, interests):
-    place = result["place"]
-    total, _ = estimate_trip(place, days, stay_style)
-    tags = "".join(
-        f'<span class="tag {"match" if tag in interests else ""}">{html.escape(tag)}</span>'
-        for tag in place["types"]
-    )
-    warnings = "".join(
-        f'<span class="tag warning">{html.escape(warning)}</span>'
-        for warning in result["warnings"]
-    )
-    reasons = html.escape("; ".join(result["reasons"]) or "Some preferences match")
-    return f"""
-    <div class="destination-card {'best' if rank == 1 else ''}">
-      <div class="destination-main">
-        <div class="rank">{"★ Best match" if rank == 1 else f"Destination match #{rank}"}</div>
-        <div class="destination-title">{place['emoji']} {html.escape(place['name'])}</div>
-        <div class="destination-state">{html.escape(place['state'])} · Suggested stay: {place['days']} days</div>
-        <p class="destination-desc">{html.escape(place['description'])}</p>
-        <div>{tags}{warnings}</div>
-        <div class="detail-grid">
-          <div><span class="detail-label">Best time to visit</span><span class="detail-value">{html.escape(place['best'])}</span></div>
-          <div><span class="detail-label">How to reach</span><span class="detail-value">{html.escape(place['transport'])}</span></div>
-          <div><span class="detail-label">Popular activities</span><span class="detail-value">{html.escape(', '.join(place['activities'][:3]))}</span></div>
-          <div><span class="detail-label">Why recommended</span><span class="detail-value">{reasons}</span></div>
-        </div>
-      </div>
-      <div class="match-panel">
-        <div class="match-score">{result['match']}%</div>
-        <div class="match-caption">preference match</div>
-        <div class="estimate">{money(total)}</div>
-        <div class="card-note">estimated / person</div>
-      </div>
-    </div>
-    """
-
-
-# ----------------------------- SESSION STATE -----------------------------
-if "saved_destinations" not in st.session_state:
-    st.session_state.saved_destinations = []
-
-
-# ----------------------------- SIDEBAR -----------------------------
+# ----------------------------- SIDEBAR NAVIGATION -----------------------------
 with st.sidebar:
-    st.markdown('<div class="brand">✈️ Travel<span>Wise</span></div>', unsafe_allow_html=True)
-    st.caption("YOUR PERSONAL DESTINATION ADVISOR")
+    st.markdown('<div class="brand">✿ Traveloo</div>', unsafe_allow_html=True)
     st.divider()
-
-    st.markdown("### Build your trip")
-    budget = st.slider("Budget per person", 5000, 50000, 15000, 1000, format="₹%d")
-    trip_days = st.slider("Trip duration", 2, 10, 4, 1, format="%d days")
-    season = st.selectbox("When are you travelling?", ["Winter", "Summer", "Monsoon"])
-    traveller = st.selectbox("Who is travelling?", ["Friends", "Family", "Couple", "Solo"])
-    interests = st.multiselect("What do you enjoy?", INTERESTS, default=["Nature", "Adventure"])
-    stay_style = st.selectbox("Preferred stay style", ["Budget", "Comfort", "Premium"], index=1)
-    result_count = st.slider("Number of recommendations", 3, 8, 5)
-    sort_option = st.selectbox("Sort recommendations by", ["Best match", "Lowest estimated cost", "Shortest suggested trip"])
+    nav_items = ["Home", "Booking", "Explore", "Messages", "Support", "Settings"]
+    nav = st.radio(
+        "NAVIGATION",
+        nav_items,
+        index=nav_items.index(st.session_state.nav) if st.session_state.nav in nav_items else 0,
+        label_visibility="collapsed",
+    )
+    st.session_state.nav = nav
     st.divider()
-    st.caption("Travel estimates are indicative and are not live booking prices.")
+    st.session_state.dark_mode = st.toggle("Dark mode", value=st.session_state.dark_mode)
+    st.caption("Traveloo · Personal travel assistant")
 
+# ----------------------------- INPUTS -----------------------------
+with st.sidebar:
+    st.markdown("### Trip preferences")
+    budget = st.slider("Budget per person", 5000, 100000, 25000, 1000, format="₹%d")
+    trip_days = st.slider("Trip duration", 2, 10, 4, format="%d days")
+    season = st.selectbox("Travel season", ["Winter", "Summer", "Spring", "Autumn", "Monsoon"])
+    group = st.selectbox("Travelling with", ["Friends", "Family", "Couple", "Solo"])
+    interests = st.multiselect(
+        "Interests",
+        ["Nature", "Adventure", "Beach", "Culture", "History", "Spiritual", "Romantic", "Nightlife", "Family", "Food", "Shopping"],
+        default=["Nature", "Adventure"],
+    )
+    stay_style = st.selectbox("Stay preference", ["Budget", "Comfort", "Premium"], index=1)
 
-# ----------------------------- MAIN HEADER -----------------------------
+# ----------------------------- PAGE HEADER -----------------------------
 st.markdown(
     """
     <div class="hero">
-      <div class="hero-kicker">Explore India · Travel smarter</div>
-      <h1>Where should you go next?</h1>
-      <p>Tell us what you love, what you want to spend and when you want to travel.
-      We'll find destinations that fit your style.</p>
-      <span class="hero-pill">✦ PERSONALIZED RECOMMENDATIONS &nbsp; · &nbsp; RULE-BASED EXPERT SYSTEM</span>
+      <div class="hero-kicker">YOUR NEXT JOURNEY STARTS HERE</div>
+      <h1>Hello, traveller! ✈️</h1>
+      <p>Welcome back. Discover new places, plan your next trip and find destinations picked around your preferences.</p>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-# Current matches for dashboard metrics and tabs.
-recommendations = get_recommendations(
-    budget, trip_days, interests, season, traveller, result_count
-) if interests else []
+# Search input is a local filter over the known destination list.
+search_col, notif_col = st.columns([8, 1])
+with search_col:
+    search_text = st.text_input(
+        "Search destinations",
+        placeholder="⌕  Search a destination, country or travel style...",
+        label_visibility="collapsed",
+    )
+with notif_col:
+    st.button("♧", help="Notifications")
 
-# Apply optional sorting without changing the scoring engine.
-if sort_option == "Lowest estimated cost":
-    recommendations.sort(key=lambda item: estimate_trip(item["place"], trip_days, stay_style)[0])
-elif sort_option == "Shortest suggested trip":
-    recommendations.sort(key=lambda item: item["place"]["days"])
+# Dashboard recommendations
+matches = get_matches(budget, trip_days, interests, season, group, 6) if interests else []
+if search_text.strip():
+    q = search_text.strip().lower()
+    matches = [
+        item for item in matches
+        if q in item["place"]["name"].lower()
+        or q in item["place"]["country"].lower()
+        or any(q in t.lower() for t in item["place"]["types"])
+    ]
 
+saved_count = len(st.session_state.saved)
 st.markdown(
     f"""
-    <div class="metric-grid">
-      <div class="metric"><div class="value">{len(DESTINATIONS)}</div><div class="label">Destinations in knowledge base</div></div>
-      <div class="metric"><div class="value">{money(budget)}</div><div class="label">Your travel budget</div></div>
-      <div class="metric"><div class="value">{trip_days} days</div><div class="label">Your planned duration</div></div>
-      <div class="metric"><div class="value">{len(st.session_state.saved_destinations)}</div><div class="label">Saved destinations</div></div>
+    <div class="kpi-row">
+      <div class="kpi"><b>{len(DESTINATIONS)}</b><span>DESTINATIONS TO EXPLORE</span></div>
+      <div class="kpi"><b>{money(budget)}</b><span>YOUR TRAVEL BUDGET</span></div>
+      <div class="kpi"><b>{saved_count}</b><span>SAVED DESTINATIONS</span></div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-tab_matches, tab_compare, tab_saved, tab_about = st.tabs(
-    ["✦ Recommended for you", "⇄ Compare destinations", "♡ Saved trips", "ⓘ How it works"]
-)
+# ----------------------------- HOME DASHBOARD -----------------------------
+if nav == "Home":
+    left, right = st.columns([1.55, 1], gap="large")
 
-# ----------------------------- MATCHES TAB -----------------------------
-with tab_matches:
-    st.markdown('<div class="section-eyebrow">Your shortlist</div>', unsafe_allow_html=True)
-    st.subheader("Destinations picked for your travel style")
+    with left:
+        st.markdown('<div class="section-title">Upcoming trip</div>', unsafe_allow_html=True)
+        featured = next(p for p in DESTINATIONS if p["name"] == "Manali")
+        st.markdown(
+            f"""
+            <div class="trip-feature">
+              {safe_image(featured['image'], featured['name'])}
+              <div style="padding:10px 4px 2px;">
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+                  <div style="font-weight:800;font-size:17px;color:var(--ink);">{featured['name']} mountain escape</div>
+                  <span class="pill">FEATURED</span>
+                </div>
+                <div class="muted">📅 12 Dec – 17 Dec &nbsp; · &nbsp; 📍 {featured['state']}</div>
+                <p class="muted" style="margin:10px 0;">{featured['description']}</p>
+                <span class="pill">✈ {money(featured['budget'])} estimated</span>
+                <span class="pill">★ {featured['rating']} rating</span>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Explore this destination", type="primary", key="featured_explore"):
+            st.session_state.nav = "Explore"
+            st.rerun()
+
+    with right:
+        st.markdown('<div class="section-title">Travel calendar</div>', unsafe_allow_html=True)
+        st.markdown(render_calendar(), unsafe_allow_html=True)
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="panel">
+              <div style="font-weight:800;color:var(--ink);margin-bottom:5px;">Travel tip of the day ✨</div>
+              <div class="muted">Keep a flexible schedule and check local weather and transport updates before leaving.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='height:15px'></div>", unsafe_allow_html=True)
+    card_header, see_all = st.columns([5, 1])
+    with card_header:
+        st.markdown('<div class="section-title">Trips exclusively for you</div>', unsafe_allow_html=True)
+    with see_all:
+        if st.button("See all →", key="see_all_home"):
+            st.session_state.nav = "Explore"
+            st.rerun()
 
     if not interests:
-        st.info("Choose at least one interest in the sidebar to generate recommendations.")
-    elif not recommendations:
-        st.warning("No strong matches were found. Try increasing your budget or changing your travel preferences.")
+        st.info("Choose at least one interest in the sidebar to get personalised suggestions.")
+    elif not matches:
+        st.info("No matches for this search. Try another destination or adjust your preferences.")
     else:
-        st.caption(f"Showing {len(recommendations)} recommendations based on your selected preferences.")
-        for rank, result in enumerate(recommendations, start=1):
-            place = result["place"]
+        cols = st.columns(3)
+        for idx, item in enumerate(matches[:3]):
+            p = item["place"]
+            with cols[idx]:
+                st.markdown(
+                    f"""
+                    <div class="trip-card">
+                      {safe_image(p['image'], p['name'])}
+                      <div class="trip-card-title">{p['emoji']} {p['name']} ({p['country']})</div>
+                      <div class="trip-card-meta">{money(p['budget'])} · {p['days']} days</div>
+                      <div style="margin-top:7px;"><span class="pill">★ {p['rating']}</span><span class="pill">{item['percent']}% match</span></div>
+                      <div class="muted" style="margin-top:5px;">{html.escape(p['description'])}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                if st.button("View details", key=f"home_{p['name']}", use_container_width=True):
+                    st.session_state.nav = "Explore"
+                    st.rerun()
+
+    st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+    history_col, saved_col = st.columns([1.15, 1], gap="large")
+    with history_col:
+        st.markdown('<div class="section-title">Recently completed trips</div>', unsafe_allow_html=True)
+        for trip in TRIP_HISTORY[:3]:
             st.markdown(
-                render_destination_card(result, rank, trip_days, stay_style, interests),
+                f"""
+                <div class="history-row">
+                  <div class="history-emoji">{trip['emoji']}</div>
+                  <div><div class="history-name">{trip['place']} ({trip['country']})</div>
+                  <div class="history-date">{trip['dates']} · {trip['status']}</div></div>
+                  <div class="history-rating">★ {trip['rating']}</div>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
-            save_col, details_col = st.columns([1, 5])
-            with save_col:
-                already_saved = place["name"] in st.session_state.saved_destinations
-                if st.button(
-                    "✓ Saved" if already_saved else "♡ Save trip",
-                    key=f"save_{place['name']}",
-                    disabled=already_saved,
-                    use_container_width=True,
-                ):
-                    st.session_state.saved_destinations.append(place["name"])
-                    st.rerun()
-            with details_col:
-                with st.expander(f"View estimated cost breakdown and {trip_days}-day outline"):
-                    total, breakdown = estimate_trip(place, trip_days, stay_style)
-                    metric_col1, metric_col2 = st.columns(2)
-                    metric_col1.metric("Estimated total per person", money(total))
-                    metric_col2.metric("Compared with your budget", money(budget - total), delta=money(budget - total))
-                    breakdown_df = pd.DataFrame(
-                        {"Estimated amount (₹)": breakdown}
-                    )
-                    st.bar_chart(breakdown_df)
-                    st.caption("Illustrative cost split: stay 35%, food 20%, transport 25%, activities 15%, other 5%.")
-                    st.markdown("**Suggested activity outline**")
-                    for day in range(trip_days):
-                        first_activity = place["activities"][(day * 2) % len(place["activities"])]
-                        second_activity = place["activities"][(day * 2 + 1) % len(place["activities"])]
-                        st.write(f"**Day {day + 1}:** {first_activity} and {second_activity}")
+    with saved_col:
+        st.markdown('<div class="section-title">Saved destinations</div>', unsafe_allow_html=True)
+        if not st.session_state.saved:
+            st.markdown('<div class="panel muted">Your saved destinations will appear here. Save a trip from the Explore page.</div>', unsafe_allow_html=True)
+        else:
+            for name in st.session_state.saved:
+                st.write("♡", name)
 
-        export_rows = []
-        for rank, item in enumerate(recommendations, 1):
+# ----------------------------- EXPLORE PAGE -----------------------------
+elif nav == "Explore":
+    st.markdown('<div class="section-title">Explore destinations</div>', unsafe_allow_html=True)
+    st.caption("Recommendations are ranked using your selected budget, season, travel group and interests.")
+    if not interests:
+        st.info("Select at least one interest in the sidebar.")
+    else:
+        all_matches = get_matches(budget, trip_days, interests, season, group, 8)
+        if search_text.strip():
+            q = search_text.strip().lower()
+            all_matches = [
+                x for x in all_matches
+                if q in x["place"]["name"].lower()
+                or q in x["place"]["country"].lower()
+                or any(q in t.lower() for t in x["place"]["types"])
+            ]
+        if not all_matches:
+            st.warning("No destinations found. Adjust your preferences or search term.")
+        for item in all_matches:
             p = item["place"]
-            estimated, _ = estimate_trip(p, trip_days, stay_style)
-            export_rows.append({
-                "Rank": rank,
-                "Destination": p["name"],
-                "State": p["state"],
-                "Match percentage": item["match"],
-                "Estimated cost per person (INR)": round(estimated),
-                "Best time": p["best"],
-                "Suggested days": p["days"],
-            })
-        export_df = pd.DataFrame(export_rows)
-        st.download_button(
-            "⬇ Download recommendations as CSV",
-            data=export_df.to_csv(index=False).encode("utf-8"),
-            file_name="travelwise_recommendations.csv",
-            mime="text/csv",
-        )
+            c1, c2 = st.columns([1.1, 2])
+            with c1:
+                st.image(p["image"], use_container_width=True)
+            with c2:
+                st.markdown(f"### {p['emoji']} {p['name']}, {p['country']}")
+                st.write(p["description"])
+                st.caption(f"Best time: {p['best']} · Suggested duration: {p['days']} days")
+                st.markdown(f"**Estimated base budget:** {money(p['budget'])} per person")
+                st.progress(item["percent"] / 100, text=f"{item['percent']}% preference match")
+                if p["name"] not in st.session_state.saved:
+                    if st.button(f"♡ Save {p['name']}", key=f"save_explore_{p['name']}"):
+                        st.session_state.saved.append(p["name"])
+                        st.rerun()
+                else:
+                    st.caption("✓ Saved to your trips")
+            st.divider()
 
-    st.markdown(
-        '<div class="footer-note">Estimates are approximate planning guides. Confirm current transport, accommodation, weather and local conditions before booking.</div>',
-        unsafe_allow_html=True,
-    )
+# ----------------------------- BOOKING PAGE -----------------------------
+elif nav == "Booking":
+    st.markdown('<div class="section-title">Plan a booking</div>', unsafe_allow_html=True)
+    st.info("This student project provides planning estimates only. It does not make real hotel, flight or tour reservations.")
+    b1, b2 = st.columns(2)
+    with b1:
+        booking_place = st.selectbox("Choose destination", [p["name"] for p in DESTINATIONS])
+        start_date = st.date_input("Departure date", date.today())
+        travellers = st.number_input("Number of travellers", 1, 20, 2)
+    with b2:
+        booking_days = st.number_input("Number of days", 1, 30, 4)
+        booking_type = st.selectbox("Travel category", ["Complete trip", "Hotel stay", "Transport", "Activities"])
+        contact_email = st.text_input("Email (optional)")
+    selected_place = next(p for p in DESTINATIONS if p["name"] == booking_place)
+    approx_total = selected_place["budget"] / selected_place["days"] * booking_days * travellers
+    st.metric("Indicative group budget", money(approx_total))
+    st.caption("Estimate only. Actual prices depend on dates, availability and booking choices.")
+    if st.button("Create sample trip plan", type="primary"):
+        st.success(f"Sample plan prepared for {travellers} traveller(s) to {booking_place}, starting {start_date:%d %b %Y}. No booking has been made.")
 
-# ----------------------------- COMPARE TAB -----------------------------
-with tab_compare:
-    st.markdown('<div class="section-eyebrow">Side-by-side view</div>', unsafe_allow_html=True)
-    st.subheader("Compare destinations before you decide")
-    all_names = [p["name"] for p in DESTINATIONS]
-    selected_names = st.multiselect(
-        "Select two to four destinations",
-        all_names,
-        default=["Jaipur", "Goa"],
-        max_selections=4,
-    )
-    if len(selected_names) < 2:
-        st.info("Select at least two destinations to compare.")
-    else:
-        selected_places = [next(p for p in DESTINATIONS if p["name"] == name) for name in selected_names]
-        compare_data = []
-        for p in selected_places:
-            estimate, _ = estimate_trip(p, trip_days, stay_style)
-            compare_data.append({
-                "Destination": p["name"],
-                "State": p["state"],
-                "Estimated cost": money(estimate),
-                "Suggested days": p["days"],
-                "Best season": ", ".join(p["seasons"]),
-                "Travel style": ", ".join(p["types"]),
-                "How to reach": p["transport"],
-            })
-        st.dataframe(pd.DataFrame(compare_data), use_container_width=True, hide_index=True)
-        cost_chart = pd.DataFrame(
-            {"Estimated cost (₹)": [estimate_trip(p, trip_days, stay_style)[0] for p in selected_places]},
-            index=[p["name"] for p in selected_places],
-        )
-        st.markdown("#### Estimated trip cost comparison")
-        st.bar_chart(cost_chart)
+# ----------------------------- MESSAGES PAGE -----------------------------
+elif nav == "Messages":
+    st.markdown('<div class="section-title">Messages & travel notes</div>', unsafe_allow_html=True)
+    st.info("Use this area to keep notes for your travel plan.")
+    note = st.text_area("Write a travel note", placeholder="Example: Check hotel options near the city centre...")
+    if st.button("Save note", type="primary"):
+        if note.strip():
+            st.session_state["travel_note"] = note.strip()
+            st.success("Your note is saved for this session.")
+    if st.session_state.get("travel_note"):
+        st.markdown("**Your saved note**")
+        st.write(st.session_state["travel_note"])
 
-# ----------------------------- SAVED TAB -----------------------------
-with tab_saved:
-    st.markdown('<div class="section-eyebrow">Your personal shortlist</div>', unsafe_allow_html=True)
-    st.subheader("Saved destinations")
-    if not st.session_state.saved_destinations:
-        st.info("You haven't saved any destinations yet. Go to Recommended for you and select Save trip.")
-    else:
-        saved_rows = []
-        for name in list(st.session_state.saved_destinations):
-            place = next(p for p in DESTINATIONS if p["name"] == name)
-            left, right = st.columns([5, 1])
-            left.markdown(f"**{place['emoji']} {place['name']}**, {place['state']} · Approx. {money(place['budget'])} for {place['days']} days")
-            if right.button("Remove", key=f"remove_{name}"):
-                st.session_state.saved_destinations.remove(name)
-                st.rerun()
-            saved_rows.append({"Destination": place["name"], "State": place["state"], "Approx. budget (INR)": place["budget"], "Best time": place["best"]})
-        st.download_button(
-            "⬇ Download saved destinations",
-            data=pd.DataFrame(saved_rows).to_csv(index=False).encode("utf-8"),
-            file_name="travelwise_saved_destinations.csv",
-            mime="text/csv",
-        )
+# ----------------------------- SUPPORT PAGE -----------------------------
+elif nav == "Support":
+    st.markdown('<div class="section-title">Travel support</div>', unsafe_allow_html=True)
+    with st.expander("How are destinations recommended?"):
+        st.write("A rule-based scoring engine compares your budget, duration, interests, season and travel group with destination information.")
+    with st.expander("Are the prices live?"):
+        st.write("No. Budgets are illustrative estimates stored in the project's knowledge base.")
+    with st.expander("Does this website book flights or hotels?"):
+        st.write("No. It is a student project prototype for destination advice and trip planning.")
+    st.markdown("For emergencies while travelling, contact local emergency services or your travel provider.")
 
-# ----------------------------- ABOUT TAB -----------------------------
-with tab_about:
-    st.markdown('<div class="section-eyebrow">Behind the recommendations</div>', unsafe_allow_html=True)
-    st.subheader("How TravelWise makes a recommendation")
-    columns = st.columns(4)
-    stages = [
-        ("01 · INPUT", "The user selects budget, trip length, season, travel group, interests and stay style."),
-        ("02 · KNOWLEDGE BASE", "The system stores destination budgets, trip durations, seasons, activities and transport details."),
-        ("03 · RULE ENGINE", "IF–THEN rules compare the user's choices with each destination and calculate a score."),
-        ("04 · OUTPUT", "The system ranks destinations and explains why each one matches the user's preferences."),
-    ]
-    for column, (heading, description) in zip(columns, stages):
-        with column:
-            st.markdown(f'<div class="info-panel"><div class="section-eyebrow">{heading}</div><p style="margin-top:10px">{description}</p></div>', unsafe_allow_html=True)
+# ----------------------------- SETTINGS PAGE -----------------------------
+elif nav == "Settings":
+    st.markdown('<div class="section-title">Dashboard settings</div>', unsafe_allow_html=True)
+    st.write("Personalise your Traveloo dashboard.")
+    dark_choice = st.toggle("Enable dark mode", value=st.session_state.dark_mode, key="settings_dark")
+    if dark_choice != st.session_state.dark_mode:
+        st.session_state.dark_mode = dark_choice
+        st.rerun()
+    st.caption("Dark mode changes the dashboard colours. Preferences are kept for the current session.")
 
-    st.markdown("#### Example rules used by the expert system")
-    st.code(
-        """
-IF destination budget is within the user's budget:
-    Add 3 points
-ELSE IF destination budget is within 20% above the user's budget:
-    Add 1 point
-ELSE:
-    Subtract 3 points
-
-IF destination duration matches the user's trip duration:
-    Add 2 points
-
-IF a destination type matches a selected interest:
-    Add 3 points for each matching interest
-
-IF the destination is suitable for the selected season:
-    Add 2 points
-
-IF destination type matches the travelling group:
-    Add a group suitability bonus
-
-Finally:
-    Rank destinations by total score
-    Display the top recommendations
-        """,
-        language="text",
-    )
-    st.caption("This is a rule-based expert system. It does not train a machine-learning model or use live booking data.")
-
-# ----------------------------- FOOTER -----------------------------
-st.markdown(
-    '<div class="footer-note">TRAVELWISE · STUDENT EXPERT SYSTEM PROJECT · BUILT WITH PYTHON & STREAMLIT</div>',
-    unsafe_allow_html=True,
-)
+st.markdown('<div class="footer">TRAVELOO · TRAVEL DESTINATION ADVISOR · BUILT WITH PYTHON & STREAMLIT</div>', unsafe_allow_html=True)
